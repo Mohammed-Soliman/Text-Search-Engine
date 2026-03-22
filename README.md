@@ -1,8 +1,8 @@
-# Text Search Engine
+# Text Search Engine with Chatbot
 
-This project implements a full-featured text search engine from scratch, combining classical **Information Retrieval techniques** with modern **semantic search methods**, including TF-IDF, BM25 ranking, and BERT-based query expansion, all wrapped in an interactive Streamlit interface with evaluation metrics.
+This project implements a full-featured text search engine from scratch, combining classical **Information Retrieval techniques** with modern **semantic search methods**, including TF-IDF, BM25 ranking, and BERT-based query expansion, now integrated with an intelligent **chatbot assistant** for conversational retrieval and answer guidance.
 
-Course: DSAI 201 – Data Mining and Information Retrieval  
+Course: DSAI 201 - Data Mining and Information Retrieval  
 Institution: Zewail City of Science and Technology  
 Semester: Spring 2026  
 
@@ -10,18 +10,19 @@ Semester: Spring 2026
 
 ## 🚀 Project Overview
 
-The system is designed to index and retrieve relevant documents efficiently from a large corpus, supporting both lexical and semantic search.
+The system is designed to index and retrieve relevant documents efficiently from a large corpus, supporting both lexical and semantic search, with a chatbot layer that helps users ask natural-language questions and receive context-aware responses.
 
-The engine was implemented across multiple components:
+The engine is implemented across multiple components:
 
 - Core IR pipeline (preprocessing + indexing)
 - Ranking models (TF-IDF, BM25)
 - Query enhancement (WordNet, BERT, Rocchio)
+- Conversational chatbot (query translation + search orchestration)
 - Interactive UI with evaluation dashboard
 
 ---
 
-## 1️⃣ Core IR Pipeline – Data Processing & Indexing
+## 1️⃣ Core IR Pipeline - Data Processing and Indexing
 
 - Data collection from 20 Newsgroups / custom datasets  
 - Text preprocessing (tokenization, normalization)  
@@ -30,15 +31,15 @@ The engine was implemented across multiple components:
 
 ---
 
-## 2️⃣ Retrieval Models – Ranking & Scoring
+## 2️⃣ Retrieval Models - Ranking and Scoring
 
 - TF-IDF vector space model  
 - BM25 probabilistic ranking (Bonus)  
-- Efficient query-document matching   
+- Efficient query-document matching  
 
 ---
 
-## 3️⃣ Query Processing – Expansion & Enhancement
+## 3️⃣ Query Processing - Expansion and Enhancement
 
 - WordNet-based synonym expansion  
 - BERT embedding-based semantic expansion (Bonus)  
@@ -47,12 +48,21 @@ The engine was implemented across multiple components:
 
 ---
 
-## 4️⃣ User Interface & Evaluation
+## 4️⃣ Chatbot Layer - Conversational Search Assistant
 
-- Interactive Streamlit UI  
-- Real-time search results  
+- Natural-language query understanding and translation  
+- Chat-driven search flow connected to retrieval modules  
+- Context-aware response generation from retrieved content  
+- Modular chatbot pipeline (document processor, translator, search handler)  
+
+---
+
+## 5️⃣ User Interface and Evaluation
+
+- Interactive Streamlit UI for search and chatbot interaction  
+- Real-time ranked results and conversational responses  
 - Evaluation metrics (MAP, nDCG, Precision@K)  
-- Visualization of performance  
+- Visualization of model and system performance  
 
 ---
 
@@ -60,7 +70,8 @@ The engine was implemented across multiple components:
 
 - Modular and scalable architecture  
 - Hybrid retrieval (lexical + semantic)  
-- Real-time interactive interface  
+- Conversational interface on top of core IR  
+- Real-time interactive experience  
 - Integrated evaluation pipeline  
 - Extensible with clustering and spell correction  
 - Clean separation of pipeline stages  
@@ -71,7 +82,7 @@ The engine was implemented across multiple components:
 
 - Python  
 - Streamlit  
-- NLTK & spaCy  
+- NLTK and spaCy  
 - Scikit-learn  
 - Transformers (BERT)  
 
@@ -85,18 +96,21 @@ The engine was implemented across multiple components:
 ---
 
 ## 📚 References
-- Manning et al., Introduction to Information Retrieval
-- Jurafsky & Martin, Speech and Language Processing
-- Scikit-learn Documentation
-- HuggingFace Transformers Documentation
+
+- Manning et al., *Introduction to Information Retrieval*  
+- Jurafsky and Martin, *Speech and Language Processing*  
+- Scikit-learn Documentation  
+- Hugging Face Transformers Documentation  
 
 ---
 
 ## 👨‍💻 Authors
-- Mohammed Soliman
-- Ziad Shaker
+
+- Mohammed Soliman  
+- Ziad Shaker  
+
 ---
 
 ## 📌 Key Takeaway
 
-This project demonstrates how a modern search engine combines classical information retrieval techniques with semantic understanding to deliver accurate and meaningful search results, highlighting the full pipeline from raw text processing to intelligent ranking and evaluation.
+This project demonstrates how a modern search engine combines classical information retrieval techniques with semantic understanding and conversational interaction to deliver accurate, meaningful, and user-friendly search experiences, covering the full pipeline from raw text processing to intelligent ranking, evaluation, and chatbot-assisted exploration.
