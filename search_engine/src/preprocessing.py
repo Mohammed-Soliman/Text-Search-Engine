@@ -22,6 +22,7 @@ from nltk.corpus import stopwords
 from nltk.stem import PorterStemmer
 from nltk.stem import WordNetLemmatizer
 
+import spacy
 
 # ─────────────────────────────────────────────────────────────
 # Globals
@@ -63,10 +64,14 @@ def _lemmatize_word(word: str) -> str:
 def lemmatize(tokens: list[str]) -> list[str]:
     return [_lemmatize_word(t) for t in tokens]
 
+def remove_ner(tokens: list[str], ner_tags: set[str] = {"PERSON", "ORG", "GPE"}) -> list[str]:
+    return [t for t in tokens if t.ent_type_ not in ner_tags]
 
 def remove_short(tokens: list[str], min_len: int = 2) -> list[str]:
     return [t for t in tokens if len(t) >= min_len]
 
+def remove_long(tokens: list[str], max_len: int = 45) -> list[str]:
+    return [t for t in tokens if len(t) <= max_len]
 
 # ─────────────────────────────────────────────────────────────
 # Full pipeline
@@ -77,7 +82,9 @@ def preprocess(
     do_stem: bool = False,       # Porter stemming
     do_lemma: bool = True,       # WordNet lemmatization (default)
     do_stopwords: bool = True,
-    min_token_len: int = 2
+    do_ner: bool = False,       # [BONUS] spaCy NER filtering
+    min_token_len: int = 2,
+    longest_token_len: int = 45     # Longest English word is 45 chars
 ) -> list[str]:
     """
     Full preprocessing pipeline.
@@ -87,8 +94,9 @@ def preprocess(
         do_stem:        apply Porter stemming (mutually exclusive with lemma)
         do_lemma:       apply WordNet lemmatization
         do_stopwords:   remove stopwords
+        do_ner:          apply spaCy NER filtering
         min_token_len:  drop tokens shorter than this
-
+        longest_token_len: drop tokens longer than this
     Returns:
         list of clean, normalized tokens
     """
@@ -96,6 +104,7 @@ def preprocess(
     tokens = tokenize(text)
     tokens = remove_punctuation_tokens(tokens)
     tokens = remove_short(tokens, min_token_len)
+    tokens = remove_long(tokens, longest_token_len)
 
     if do_stopwords:
         tokens = remove_stopwords(tokens)
@@ -105,46 +114,11 @@ def preprocess(
     elif do_lemma:
         tokens = lemmatize(tokens)
 
-    return tokens
-
-
-def preprocess_query(query: str, **kwargs) -> list[str]:
-    """Thin wrapper — same pipeline, used for queries."""
-    return preprocess(query, **kwargs)
-
-
-# ─────────────────────────────────────────────────────────────
-# [BONUS] spaCy NER — filter out named entities before indexing
-# ─────────────────────────────────────────────────────────────
-
-def preprocess_with_ner(text: str, remove_entities: bool = True) -> list[str]:
-    """
-    [BONUS] Use spaCy to:
-      - Lemmatize tokens
-      - Optionally remove named entities (PERSON, ORG, GPE …)
-    """
-    import spacy
-
-    _nlp = spacy.load("en_core_web_sm", disable=["parser"])
-    doc = _nlp(text[:100_000])   # spaCy max length guard
-
-    entity_spans = set()
-    if remove_entities:
-        for ent in doc.ents:
-            for tok in ent:
-                entity_spans.add(tok.i)
-
-    tokens = []
-    for i, token in enumerate(doc):
-        if token.is_stop or token.is_punct or token.is_space:
-            continue
-        if remove_entities and i in entity_spans:
-            continue
-        lemma = token.lemma_.lower()
-        if len(lemma) >= 2:
-            tokens.append(lemma)
+    if do_ner:
+        tokens = remove_ner(tokens)
 
     return tokens
+
 
 
 # ─────────────────────────────────────────────────────────────
@@ -156,4 +130,4 @@ if __name__ == "__main__":
     print("Raw:       ", sample)
     print("Standard:  ", preprocess(sample))
     print("Stemmed:   ", preprocess(sample, do_stem=True, do_lemma=False))
-    print("No Named Entites:   ", preprocess_with_ner(sample))
+    print("No Named Entites:   ", preprocess(sample, do_ner=True))

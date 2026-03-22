@@ -1,4 +1,4 @@
-# Text Search Engine with Chatbot
+# Basic Search Engine with Chatbot
 
 This project implements a full-featured text search engine from scratch, combining classical **Information Retrieval techniques** with modern **semantic search methods**, including TF-IDF, BM25 ranking, and BERT-based query expansion, now integrated with an intelligent **chatbot assistant** for conversational retrieval and answer guidance.
 
