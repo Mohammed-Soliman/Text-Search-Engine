@@ -31,4 +31,8 @@ from typing import Optional
 from sklearn.datasets import fetch_20newsgroups
 from tqdm import tqdm
 ##done 
-
+print ("Corpus Loader Module Loaded")
+print ("TODO: Implement data loading functions in corpus_loader.py")
+print ("Functions to Implement:")
+print ("  - load_20newsgroups(categories, max_docs, subset): Fetch from sklearn dataset.")
+print ("    Return list of dicts with: id, title, text, category.") 
