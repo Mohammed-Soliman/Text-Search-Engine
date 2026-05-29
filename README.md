@@ -1,6 +1,6 @@
 # Basic Search Engine with Chatbot
 
-This project implements a full-featured text search engine from scratch, combining classical **Information Retrieval techniques** with modern **semantic search methods**, including TF-IDF, BM25 ranking, and BERT-based query expansion, now integrated with an intelligent **chatbot assistant** for conversational retrieval and answer guidance.
+This project implements a full-featured text search engine from scratch, combining classical **Information Retrieval techniques** with modern **semantic search methods**, including Boolean, TF-IDF, BM25 ranking, and BERT-based query expansion, now integrated with an intelligent **chatbot assistant** for conversational retrieval and answer guidance.
 
 Course: DSAI 201 - Data Mining and Information Retrieval  
 Institution: Zewail City of Science and Technology  
@@ -15,7 +15,7 @@ The system is designed to index and retrieve relevant documents efficiently from
 The engine is implemented across multiple components:
 
 - Core IR pipeline (preprocessing + indexing)
-- Ranking models (TF-IDF, BM25)
+- Ranking models (Boolean, TF-IDF, BM25)
 - Query enhancement (WordNet, BERT, Rocchio)
 - Conversational chatbot (query translation + search orchestration)
 - Interactive UI with evaluation dashboard
@@ -90,8 +90,8 @@ The engine is implemented across multiple components:
 
 ## 📚 Dataset
 
-- 20 Newsgroups dataset (~18,000 documents across 20 categories)  
-- Supports extension to TREC or custom corpora  
+- BBC News dataset
+- Supports uploading local data through the UI  
 
 ---
 
