@@ -98,9 +98,7 @@ The engine is implemented across multiple components:
 ## 📚 References
 
 - Manning et al., *Introduction to Information Retrieval*  
-- Jurafsky and Martin, *Speech and Language Processing*  
-- Scikit-learn Documentation  
-- Hugging Face Transformers Documentation  
+- *DSAI 201* Course Materials 
 
 ---
 
