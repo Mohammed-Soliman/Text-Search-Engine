@@ -24,7 +24,7 @@ The engine is implemented across multiple components:
 
 ## 1️⃣ Core IR Pipeline - Data Processing and Indexing
 
-- Data collection from 20 Newsgroups / custom datasets  
+- Data collection from BBC-News / custom datasets  
 - Text preprocessing (tokenization, normalization)  
 - Stopword removal and stemming/lemmatization  
 - Inverted index construction with term frequencies  
@@ -33,8 +33,9 @@ The engine is implemented across multiple components:
 
 ## 2️⃣ Retrieval Models - Ranking and Scoring
 
+- Boolean (AND) retrieval
 - TF-IDF vector space model  
-- BM25 probabilistic ranking (Bonus)  
+- BM25 probabilistic ranking
 - Efficient query-document matching  
 
 ---
@@ -42,9 +43,9 @@ The engine is implemented across multiple components:
 ## 3️⃣ Query Processing - Expansion and Enhancement
 
 - WordNet-based synonym expansion  
-- BERT embedding-based semantic expansion (Bonus)  
-- Rocchio relevance feedback (Bonus)  
-- Query spell correction (Bonus)  
+- BERT embedding-based semantic expansion
+- Rocchio relevance feedback
+- Query spell correction
 
 ---
 
@@ -82,7 +83,7 @@ The engine is implemented across multiple components:
 
 - Python  
 - Streamlit  
-- NLTK and spaCy  
+- NLTK
 - Scikit-learn  
 - Transformers (BERT)  
 
