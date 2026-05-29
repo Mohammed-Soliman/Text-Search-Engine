@@ -1,0 +1,1043 @@
+<!DOCTYPE html>
+<html lang="en" class="light">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Basic Text Search Engine</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet" />
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <script>
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "tertiary": "#1b2127",
+                        "surface-bright": "#f9f9ff",
+                        "secondary-fixed-dim": "#a2c9ff",
+                        "on-primary-container": "#86a0cd",
+                        "inverse-primary": "#adc7f7",
+                        "secondary-container": "#7db6ff",
+                        "on-secondary-fixed-variant": "#004881",
+                        "inverse-on-surface": "#ebf1ff",
+                        "secondary": "#1960a3",
+                        "outline": "#74777f",
+                        "on-primary-fixed": "#001b3c",
+                        "on-surface-variant": "#43474e",
+                        "tertiary-fixed-dim": "#c1c7cf",
+                        "surface-container-high": "#dee8ff",
+                        "background": "#f9f9ff",
+                        "on-tertiary-fixed": "#161c22",
+                        "on-error": "#ffffff",
+                        "secondary-fixed": "#d3e4ff",
+                        "on-surface": "#111c2c",
+                        "surface-container": "#e7eeff",
+                        "surface-container-lowest": "#ffffff",
+                        "surface-container-low": "#f0f3ff",
+                        "surface-variant": "#d8e3fa",
+                        "primary-container": "#1a365d",
+                        "error": "#ba1a1a",
+                        "on-secondary": "#ffffff",
+                        "surface": "#f9f9ff",
+                        "surface-dim": "#cfdaf1",
+                        "primary-fixed": "#d6e3ff",
+                        "on-secondary-container": "#00477f",
+                        "primary": "#002045",
+                        "surface-container-highest": "#d8e3fa",
+                        "on-tertiary": "#ffffff",
+                        "error-container": "#ffdad6",
+                        "tertiary-container": "#30363c",
+                        "outline-variant": "#c4c6cf",
+                        "on-primary": "#ffffff",
+                        "inverse-surface": "#263142",
+                        "on-background": "#111c2c"
+                    },
+                    borderRadius: { "DEFAULT": "0.125rem", "lg": "0.25rem", "xl": "0.5rem", "full": "0.75rem" },
+                    spacing: { "gutter": "24px", "margin-desktop": "64px", "unit": "4px", "margin-mobile": "16px", "container-max-width": "1280px" },
+                    fontFamily: { "body-sm": ["Inter"], "headline-md": ["Inter"], "label-caps": ["Inter"], "technical-code": ["JetBrains Mono"], "body-base": ["Inter"], "display-lg": ["Inter"] },
+                    fontSize: {
+                        "body-sm": ["14px", { lineHeight: "20px", fontWeight: "400" }],
+                        "headline-md": ["24px", { lineHeight: "32px", fontWeight: "600" }],
+                        "label-caps": ["12px", { lineHeight: "16px", letterSpacing: "0.05em", fontWeight: "600" }],
+                        "technical-code": ["13px", { lineHeight: "20px", fontWeight: "400" }],
+                        "body-base": ["16px", { lineHeight: "24px", fontWeight: "400" }],
+                        "display-lg": ["48px", { lineHeight: "56px", letterSpacing: "-0.02em", fontWeight: "700" }]
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 300, 'GRAD' 0, 'opsz' 24;
+        }
+
+        .fill-icon {
+            font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+
+        .view {
+            display: none;
+        }
+
+            .view.active {
+                display: flex;
+            }
+
+        #autocomplete-list {
+            max-height: 280px;
+            overflow-y: auto;
+        }
+
+        #loading-bar {
+            transition: width 0.3s ease;
+        }
+
+        .highlight {
+            background-color: #d8e3fa;
+            border-radius: 2px;
+            padding: 0 2px;
+            font-weight: 600;
+        }
+    </style>
+</head>
+
+<body class="bg-background text-on-background h-screen w-full flex overflow-hidden font-body-base text-body-base">
+
+    <aside id="sidebar" class="bg-surface-container-low flex flex-col h-screen p-4 space-y-1 border-r border-outline-variant w-64 shrink-0 z-20">
+        <div class="flex items-center gap-3 px-3 py-4 mb-2">
+            <span class="material-symbols-outlined text-primary text-2xl fill-icon">manage_search</span>
+            <span class="font-headline-md text-[16px] text-primary leading-tight">Basic Text<br>Search Engine</span>
+        </div>
+
+        <button onclick="showView('search')" id="nav-search"
+                class="nav-btn flex items-center gap-3 px-3 py-2 rounded-lg duration-200 text-on-surface-variant hover:bg-surface-variant w-full text-left">
+            <span class="material-symbols-outlined text-xl">search</span>
+            <span class="font-label-caps text-label-caps">Search</span>
+        </button>
+
+        <button onclick="showView('corpus')" id="nav-corpus"
+                class="nav-btn flex items-center gap-3 px-3 py-2 rounded-lg duration-200 text-on-surface-variant hover:bg-surface-variant w-full text-left">
+            <span class="material-symbols-outlined text-xl">folder_open</span>
+            <span class="font-label-caps text-label-caps">Corpus &amp; Index</span>
+        </button>
+
+        <button onclick="showView('evaluation')" id="nav-evaluation"
+                class="nav-btn flex items-center gap-3 px-3 py-2 rounded-lg duration-200 text-on-surface-variant hover:bg-surface-variant w-full text-left">
+            <span class="material-symbols-outlined text-xl">query_stats</span>
+            <span class="font-label-caps text-label-caps">Evaluation</span>
+        </button>
+
+        <div class="flex-1"></div>
+        <div class="border-t border-outline-variant pt-3 mt-3">
+            <div id="status-badge" class="flex items-center gap-2 px-3 py-2 rounded-lg bg-surface-container-lowest border border-outline-variant">
+                <span id="status-dot" class="w-2 h-2 rounded-full bg-outline"></span>
+                <div>
+                    <p class="font-label-caps text-label-caps text-on-surface-variant">Index Status</p>
+                    <p id="status-text" class="font-technical-code text-[11px] text-outline">Loading...</p>
+                </div>
+            </div>
+        </div>
+    </aside>
+
+    <div class="flex flex-col flex-1 h-screen overflow-hidden bg-surface-bright">
+
+        <header class="bg-surface-container-lowest flex justify-between items-center px-gutter h-16 border-b border-outline-variant shrink-0 z-10">
+            <div id="topbar-title" class="font-headline-md text-[18px] text-primary">Search</div>
+            <div class="flex items-center gap-3">
+                <button onclick="refreshStatus()"
+                        class="text-on-surface-variant hover:text-secondary flex items-center justify-center w-9 h-9 rounded-full hover:bg-surface-variant transition-colors">
+                    <span class="material-symbols-outlined text-xl">refresh</span>
+                </button>
+                <button onclick="showView('corpus')"
+                        class="text-on-surface-variant hover:text-secondary flex items-center justify-center w-9 h-9 rounded-full hover:bg-surface-variant transition-colors">
+                    <span class="material-symbols-outlined text-xl">settings</span>
+                </button>
+            </div>
+        </header>
+
+        <div id="view-search" class="view active flex-col flex-1 overflow-hidden">
+            <div id="search-landing" class="flex flex-col items-center justify-center flex-1 px-gutter pb-24">
+                <h1 class="font-display-lg text-[40px] text-primary mb-3 tracking-tight text-center">Basic Text Search Engine</h1>
+                <p class="font-body-base text-body-base text-on-surface-variant max-w-lg mx-auto text-center mb-10">
+                    Search documents using BM25, TF-IDF, or VSM. Expand queries with WordNet, Rocchio, or SBERT.
+                </p>
+
+                <div class="w-full max-w-2xl relative">
+                    <span class="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-outline text-[22px]">search</span>
+                    <input id="landing-input" type="text" autocomplete="off"
+                           placeholder="Type a query — e.g. machine learning, neural networks..."
+                           class="w-full pl-12 pr-36 py-4 rounded-xl border border-outline-variant bg-surface-container-lowest text-on-surface font-body-base text-body-base shadow-[0_4px_20px_rgba(26,54,93,0.05)] focus:outline-none focus:ring-2 focus:ring-secondary focus:border-transparent transition-all placeholder:text-outline-variant"
+                           oninput="onSearchInput(this.value,'landing-input')"
+                           onkeydown="if(event.key==='Enter') runSearch()" />
+
+                    <div class="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-2">
+                        <span class="font-technical-code text-technical-code text-outline bg-surface-container py-1 px-2 rounded border border-outline-variant/50 hidden sm:block select-none">Enter</span>
+                        <button onclick="runSearch()"
+                                class="bg-primary-container text-on-primary font-label-caps text-label-caps px-5 py-2 rounded-lg hover:bg-primary transition-colors">
+                            Search
+                        </button>
+                    </div>
+
+                    <div id="ac-landing" class="hidden absolute left-0 right-0 top-full mt-1 bg-surface-container-lowest border border-outline-variant rounded-xl shadow-lg z-50 overflow-hidden">
+                        <ul id="autocomplete-list" class="divide-y divide-outline-variant/30"></ul>
+                    </div>
+                </div>
+
+                <div class="w-full max-w-2xl mt-6 flex flex-col gap-4">
+                    <div class="bg-surface-container-lowest border border-outline-variant rounded-xl p-4">
+                        <p class="font-label-caps text-label-caps text-on-surface-variant mb-3">Retrieval method</p>
+                        <div class="flex flex-wrap gap-2" id="method-chips">
+                            <button onclick="setMethod('bm25')" class="method-chip active-chip px-3 py-1.5 rounded-lg border border-outline-variant font-body-sm text-body-sm transition-colors">BM25</button>
+                            <button onclick="setMethod('tfidf')" class="method-chip px-3 py-1.5 rounded-lg border border-outline-variant font-body-sm text-body-sm transition-colors">TF-IDF</button>
+                            <button onclick="setMethod('vsm')" class="method-chip px-3 py-1.5 rounded-lg border border-outline-variant font-body-sm text-body-sm transition-colors">VSM</button>
+                            <button onclick="setMethod('boolean')" class="method-chip px-3 py-1.5 rounded-lg border border-outline-variant font-body-sm text-body-sm transition-colors">Boolean</button>
+                            <button onclick="setMethod('sbert')" class="method-chip px-3 py-1.5 rounded-lg border border-outline-variant font-body-sm text-body-sm transition-colors" id="sbert-method-chip" style="display: none;">SBERT</button>
+                        </div>
+                    </div>
+
+                    <div class="bg-surface-container-lowest border border-outline-variant rounded-xl p-4">
+                        <p class="font-label-caps text-label-caps text-on-surface-variant mb-3">Query expansion</p>
+                        <div class="flex flex-wrap gap-2" id="expansion-chips">
+                            <button onclick="setExpansion('none')" class="exp-chip active-exp px-3 py-1.5 rounded-lg border border-outline-variant font-body-sm text-body-sm transition-colors">None</button>
+                            <button onclick="setExpansion('wordnet')" class="exp-chip px-3 py-1.5 rounded-lg border border-outline-variant font-body-sm text-body-sm transition-colors">WordNet</button>
+                            <button onclick="setExpansion('rocchio')" class="exp-chip px-3 py-1.5 rounded-lg border border-outline-variant font-body-sm text-body-sm transition-colors">Rocchio</button>
+                            <button onclick="setExpansion('sbert')" class="exp-chip px-3 py-1.5 rounded-lg border border-outline-variant font-body-sm text-body-sm transition-colors" id="sbert-exp-chip" style="display: none;">SBERT</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="search-results" class="hidden flex flex-col flex-1 overflow-hidden">
+                <div class="px-gutter py-3 border-b border-outline-variant bg-surface-container-lowest flex items-center gap-3 shrink-0">
+                    <div class="flex-1 flex items-center border border-outline-variant bg-surface-container-lowest rounded-lg px-3 focus-within:ring-2 focus-within:ring-secondary focus-within:border-transparent transition-all">
+                        <span class="material-symbols-outlined text-outline text-xl mr-2">search</span>
+                        <input id="results-input" type="text" autocomplete="off"
+                               class="flex-1 py-2.5 bg-transparent border-none outline-none font-body-base text-body-base text-on-surface placeholder:text-outline-variant"
+                               placeholder="Refine query..."
+                               oninput="onSearchInput(this.value,'results-input')"
+                               onkeydown="if(event.key==='Enter') runSearch()" />
+                        <div id="ac-results" class="hidden absolute mt-1 bg-surface-container-lowest border border-outline-variant rounded-xl shadow-lg z-50 overflow-hidden" style="top:56px; left:24px; right:24px;">
+                            <ul id="autocomplete-list-results" class="divide-y divide-outline-variant/30"></ul>
+                        </div>
+                    </div>
+                    <button onclick="runSearch()"
+                            class="bg-primary-container text-on-primary font-label-caps text-label-caps px-4 py-2.5 rounded-lg hover:bg-primary transition-colors shrink-0">
+                        Search
+                    </button>
+                    <button onclick="goBackToLanding()"
+                            class="text-on-surface-variant hover:text-secondary flex items-center gap-1 font-body-sm text-body-sm transition-colors shrink-0">
+                        <span class="material-symbols-outlined text-lg">tune</span>
+                    </button>
+                </div>
+
+                <div class="flex flex-1 overflow-hidden">
+                    <div class="flex-1 overflow-y-auto px-gutter py-4 flex flex-col gap-4">
+                        <div class="flex items-center justify-between">
+                            <div id="results-meta" class="font-body-sm text-body-sm text-on-surface-variant"></div>
+                            <div class="flex items-center gap-2">
+                                <span class="font-body-sm text-body-sm text-on-surface-variant">Sort by:</span>
+                                <select onchange="changeSortOrder(this.value)"
+                                        class="font-body-sm text-body-sm text-on-surface border border-outline-variant bg-surface-container-lowest rounded px-2 py-1 outline-none focus:ring-1 focus:ring-secondary">
+                                    <option value="score">Relevance</option>
+                                    <option value="alpha">Title A–Z</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div id="expansion-row" class="hidden flex-wrap gap-2 items-center p-3 bg-surface-container-low rounded-xl border border-outline-variant">
+                            <span class="material-symbols-outlined text-secondary text-lg">hub</span>
+                            <span class="font-label-caps text-label-caps text-secondary mr-1">Expanded with:</span>
+                            <div id="expansion-chips-row" class="flex flex-wrap gap-1.5"></div>
+                        </div>
+
+                        <div id="result-cards" class="flex flex-col gap-3"></div>
+
+                        <div id="no-results" class="hidden flex flex-col items-center justify-center py-16 text-center">
+                            <span class="material-symbols-outlined text-5xl text-outline mb-3">search_off</span>
+                            <p class="font-headline-md text-headline-md text-on-surface-variant mb-1">No results found</p>
+                            <p class="font-body-sm text-body-sm text-outline max-w-xs">Try different keywords, another retrieval method, or enable query expansion.</p>
+                        </div>
+                    </div>
+
+                    <div class="w-64 shrink-0 border-l border-outline-variant bg-surface-container-low overflow-y-auto p-4 flex flex-col gap-4 hidden lg:flex">
+                        <div>
+                            <p class="font-label-caps text-label-caps text-on-surface-variant mb-2">Retrieval method</p>
+                            <div class="flex flex-col gap-1" id="sidebar-methods">
+                                <button onclick="setMethod('bm25')" class="smethod flex items-center gap-2 px-3 py-2 rounded-lg font-body-sm text-body-sm transition-colors text-on-surface-variant hover:bg-surface-variant">
+                                    <span class="material-symbols-outlined text-base">filter_alt</span> BM25
+                                </button>
+                                <button onclick="setMethod('tfidf')" class="smethod flex items-center gap-2 px-3 py-2 rounded-lg font-body-sm text-body-sm transition-colors text-on-surface-variant hover:bg-surface-variant">
+                                    <span class="material-symbols-outlined text-base">calculate</span> TF-IDF
+                                </button>
+                                <button onclick="setMethod('vsm')" class="smethod flex items-center gap-2 px-3 py-2 rounded-lg font-body-sm text-body-sm transition-colors text-on-surface-variant hover:bg-surface-variant">
+                                    <span class="material-symbols-outlined text-base">scatter_plot</span> VSM
+                                </button>
+                                <button onclick="setMethod('boolean')" class="smethod flex items-center gap-2 px-3 py-2 rounded-lg font-body-sm text-body-sm transition-colors text-on-surface-variant hover:bg-surface-variant">
+                                    <span class="material-symbols-outlined text-base">rule</span> Boolean AND
+                                </button>
+                                <button onclick="setMethod('sbert')" class="smethod flex items-center gap-2 px-3 py-2 rounded-lg font-body-sm text-body-sm transition-colors text-on-surface-variant hover:bg-surface-variant" id="sbert-method-sidebar" style="display: none;">
+                                    <span class="material-symbols-outlined text-base">neural_network</span> SBERT
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="border-t border-outline-variant"></div>
+
+                        <div>
+                            <p class="font-label-caps text-label-caps text-on-surface-variant mb-2">Query expansion</p>
+                            <div class="flex flex-col gap-1" id="sidebar-expansions">
+                                <button onclick="setExpansion('none')" class="sexp flex items-center gap-2 px-3 py-2 rounded-lg font-body-sm text-body-sm transition-colors text-on-surface-variant hover:bg-surface-variant">
+                                    <span class="material-symbols-outlined text-base">block</span> None
+                                </button>
+                                <button onclick="setExpansion('wordnet')" class="sexp flex items-center gap-2 px-3 py-2 rounded-lg font-body-sm text-body-sm transition-colors text-on-surface-variant hover:bg-surface-variant">
+                                    <span class="material-symbols-outlined text-base">account_tree</span> WordNet
+                                </button>
+                                <button onclick="setExpansion('rocchio')" class="sexp flex items-center gap-2 px-3 py-2 rounded-lg font-body-sm text-body-sm transition-colors text-on-surface-variant hover:bg-surface-variant">
+                                    <span class="material-symbols-outlined text-base">feedback</span> Rocchio
+                                </button>
+                                <button onclick="setExpansion('sbert')" class="sexp flex items-center gap-2 px-3 py-2 rounded-lg font-body-sm text-body-sm transition-colors text-on-surface-variant hover:bg-surface-variant" id="sbert-exp-sidebar" style="display: none;">
+                                    <span class="material-symbols-outlined text-base">psychology</span> SBERT
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="border-t border-outline-variant"></div>
+
+                        <div>
+                            <p class="font-label-caps text-label-caps text-on-surface-variant mb-2">Related terms</p>
+                            <div id="related-terms" class="flex flex-wrap gap-1.5"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="view-corpus" class="view flex-col flex-1 overflow-y-auto px-gutter py-8 gap-6">
+            <div>
+                <h2 class="font-headline-md text-headline-md text-primary mb-1">Corpus &amp; Index</h2>
+                <p class="font-body-sm text-body-sm text-on-surface-variant">Load a document collection, then build the inverted index.</p>
+            </div>
+
+            <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                <div class="bg-surface-container-lowest border border-outline-variant rounded-xl p-5 flex flex-col justify-between">
+                    <span class="material-symbols-outlined text-secondary mb-2">description</span>
+                    <p class="font-display-lg text-[28px] text-primary" id="stat-docs">—</p>
+                    <p class="font-body-sm text-body-sm text-on-surface-variant mt-1">Documents</p>
+                </div>
+                <div class="bg-surface-container-lowest border border-outline-variant rounded-xl p-5 flex flex-col justify-between">
+                    <span class="material-symbols-outlined text-secondary mb-2">spellcheck</span>
+                    <p class="font-display-lg text-[28px] text-primary" id="stat-vocab">—</p>
+                    <p class="font-body-sm text-body-sm text-on-surface-variant mt-1">Vocab terms</p>
+                </div>
+                <div class="bg-surface-container-lowest border border-outline-variant rounded-xl p-5 flex flex-col justify-between">
+                    <span class="material-symbols-outlined text-secondary mb-2">straighten</span>
+                    <p class="font-display-lg text-[28px] text-primary" id="stat-avglen">—</p>
+                    <p class="font-body-sm text-body-sm text-on-surface-variant mt-1">Avg doc length</p>
+                </div>
+                <div class="bg-surface-container-lowest border border-outline-variant rounded-xl p-5 flex flex-col justify-between">
+                    <span class="material-symbols-outlined text-secondary mb-2">cloud_done</span>
+                    <p class="font-display-lg text-[28px] text-primary" id="stat-status">—</p>
+                    <p class="font-body-sm text-body-sm text-on-surface-variant mt-1">Status</p>
+                </div>
+            </div>
+
+            <div class="bg-surface-container-lowest border border-outline-variant rounded-xl p-6">
+                <p class="font-headline-md text-[18px] text-primary mb-1">Load a corpus</p>
+                <p class="font-body-sm text-body-sm text-on-surface-variant mb-5">
+                    Upload a <span class="font-technical-code text-technical-code">.json</span>,
+                    <span class="font-technical-code text-technical-code">.csv</span>, or
+                    <span class="font-technical-code text-technical-code">.txt</span> file.
+                </p>
+
+                <div id="drop-zone"
+                     class="border-2 border-dashed border-outline-variant rounded-xl p-8 flex flex-col items-center gap-3 cursor-pointer hover:border-secondary hover:bg-surface-container transition-all"
+                     onclick="document.getElementById('file-input').click()"
+                     ondragover="onDragOver(event)"
+                     ondragleave="onDragLeave(event)"
+                     ondrop="onDrop(event)">
+                    <span class="material-symbols-outlined text-4xl text-outline">upload_file</span>
+                    <p class="font-body-base text-body-base text-on-surface-variant text-center">
+                        Drag &amp; drop a file here, or <span class="text-secondary font-semibold">click to browse</span>
+                    </p>
+                    <p class="font-body-sm text-body-sm text-outline">.json · .csv · .txt</p>
+                    <input id="file-input" type="file" accept=".json,.csv,.txt" class="hidden" onchange="handleFileSelect(this)" />
+                </div>
+
+                <div id="file-chosen" class="hidden mt-3 flex items-center gap-2 px-3 py-2 bg-surface-container-low rounded-lg border border-outline-variant">
+                    <span class="material-symbols-outlined text-secondary text-lg">draft</span>
+                    <span id="file-chosen-name" class="font-technical-code text-technical-code text-on-surface flex-1"></span>
+                    <button onclick="clearFile()" class="text-outline hover:text-error transition-colors">
+                        <span class="material-symbols-outlined text-base">close</span>
+                    </button>
+                </div>
+
+                <div class="mt-5 flex flex-wrap gap-3">
+                    <button onclick="uploadCorpus()"
+                            class="bg-primary-container text-on-primary font-label-caps text-label-caps px-6 py-2.5 rounded-lg hover:bg-primary transition-colors flex items-center gap-2">
+                        <span class="material-symbols-outlined text-lg">build</span>
+                        Build Index
+                    </button>
+                    <button onclick="loadDemo()"
+                            class="border border-outline-variant text-on-surface-variant font-label-caps text-label-caps px-6 py-2.5 rounded-lg hover:bg-surface-variant transition-colors flex items-center gap-2">
+                        <span class="material-symbols-outlined text-lg">dataset</span>
+                        Use Demo Corpus
+                    </button>
+                </div>
+
+                <div id="upload-feedback" class="hidden mt-4 flex items-center gap-2 px-4 py-3 rounded-lg border">
+                    <span id="upload-icon" class="material-symbols-outlined text-lg"></span>
+                    <p id="upload-msg" class="font-body-sm text-body-sm"></p>
+                </div>
+            </div>
+        </div>
+
+        <div id="view-evaluation" class="view flex-col flex-1 overflow-y-auto px-gutter py-8 gap-6">
+            <div>
+                <h2 class="font-headline-md text-headline-md text-primary mb-1">Evaluation</h2>
+                <p class="font-body-sm text-body-sm text-on-surface-variant">Compare retrieval methods using standard IR metrics: P@k, MAP, NDCG.</p>
+            </div>
+
+            <div class="bg-surface-container-lowest border border-outline-variant rounded-xl p-6">
+                <p class="font-label-caps text-label-caps text-on-surface-variant mb-1">Test queries (JSON format)</p>
+                <p class="font-body-sm text-body-sm text-on-surface-variant mb-3">
+                    Each query needs a <span class="font-technical-code text-technical-code">query</span> string
+                    and a <span class="font-technical-code text-technical-code">relevant</span> list of document IDs.
+                </p>
+<textarea id="eval-queries-input" rows="8" spellcheck="false"
+          class="w-full font-technical-code text-technical-code text-on-surface bg-surface-container-low border border-outline-variant rounded-lg p-4 outline-none focus:ring-2 focus:ring-secondary resize-none text-[12px] leading-relaxed">[
+  {"query": "neural networks deep learning", "relevant": [1, 2]},
+  {"query": "search engine ranking", "relevant": [3, 4]},
+  {"query": "information retrieval", "relevant": [5, 6]}
+]</textarea>
+
+                <div class="mt-4 flex items-center gap-4">
+                    <div class="flex items-center gap-2">
+                        <label class="font-body-sm text-body-sm text-on-surface-variant">k =</label>
+                        <input id="eval-k" type="number" value="10" min="1" max="50"
+                               class="w-16 font-technical-code text-technical-code text-on-surface border border-outline-variant bg-surface-container-low rounded px-2 py-1 outline-none focus:ring-1 focus:ring-secondary" />
+                    </div>
+                    <button onclick="runEvaluation()"
+                            class="bg-primary-container text-on-primary font-label-caps text-label-caps px-6 py-2.5 rounded-lg hover:bg-primary transition-colors flex items-center gap-2">
+                        <span class="material-symbols-outlined text-lg">play_arrow</span>
+                        Run Evaluation
+                    </button>
+                </div>
+            </div>
+
+            <div id="eval-results" class="hidden bg-surface-container-lowest border border-outline-variant rounded-xl overflow-hidden">
+                <div class="px-6 py-4 border-b border-outline-variant flex items-center justify-between">
+                    <p class="font-headline-md text-[16px] text-primary">Results</p>
+                    <p id="eval-meta" class="font-body-sm text-body-sm text-on-surface-variant"></p>
+                </div>
+                <table class="w-full font-body-sm text-body-sm">
+                    <thead>
+                        <tr class="bg-surface-container-low">
+                            <th class="text-left px-6 py-3 font-label-caps text-label-caps text-on-surface-variant">Method</th>
+                            <th class="text-right px-6 py-3 font-label-caps text-label-caps text-on-surface-variant">MAP</th>
+                            <th class="text-right px-6 py-3 font-label-caps text-label-caps text-on-surface-variant" id="eval-ndcg-header">NDCG@10</th>
+                            <th class="text-right px-6 py-3 font-label-caps text-label-caps text-on-surface-variant" id="eval-p-header">P@10</th>
+                        </tr>
+                    </thead>
+                    <tbody id="eval-table-body"></tbody>
+                </table>
+            </div>
+
+            <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div class="bg-surface-container-lowest border border-outline-variant rounded-xl p-4">
+                    <p class="font-label-caps text-label-caps text-secondary mb-2">Precision@k</p>
+                    <p class="font-body-sm text-body-sm text-on-surface-variant">Of the top-k retrieved docs, what fraction is relevant?</p>
+                </div>
+                <div class="bg-surface-container-lowest border border-outline-variant rounded-xl p-4">
+                    <p class="font-label-caps text-label-caps text-secondary mb-2">Recall@k</p>
+                    <p class="font-body-sm text-body-sm text-on-surface-variant">Of all relevant docs, how many did we retrieve in top-k?</p>
+                </div>
+                <div class="bg-surface-container-lowest border border-outline-variant rounded-xl p-4">
+                    <p class="font-label-caps text-label-caps text-secondary mb-2">MAP</p>
+                    <p class="font-body-sm text-body-sm text-on-surface-variant">Mean Average Precision across all relevant positions.</p>
+                </div>
+                <div class="bg-surface-container-lowest border border-outline-variant rounded-xl p-4">
+                    <p class="font-label-caps text-label-caps text-secondary mb-2">NDCG@k</p>
+                    <p class="font-body-sm text-body-sm text-on-surface-variant">Normalized Discounted Cumulative Gain at k.</p>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <div id="doc-modal" class="hidden fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
+        <div class="bg-surface-container-lowest w-full max-w-3xl max-h-[85vh] rounded-xl border border-outline-variant flex flex-col overflow-hidden shadow-2xl">
+            <div class="flex items-center justify-between px-6 py-4 border-b border-outline-variant shrink-0">
+                <div>
+                    <p id="modal-title" class="font-headline-md text-[18px] text-primary"></p>
+                    <div class="flex items-center gap-2 mt-1">
+                        <span id="modal-category" class="font-label-caps text-label-caps text-secondary bg-secondary-container/40 px-2 py-0.5 rounded-full"></span>
+                        <span id="modal-docid" class="font-technical-code text-technical-code text-outline"></span>
+                    </div>
+                </div>
+                <button onclick="closeModal()" class="text-on-surface-variant hover:text-secondary flex items-center justify-center w-8 h-8 rounded-full hover:bg-surface-variant transition-colors">
+                    <span class="material-symbols-outlined text-xl">close</span>
+                </button>
+            </div>
+            <div id="modal-body" class="overflow-y-auto px-6 py-4 font-body-base text-body-base text-on-surface leading-relaxed"></div>
+            <div class="px-6 py-3 border-t border-outline-variant shrink-0 flex items-center justify-between">
+                <span id="modal-score" class="font-technical-code text-technical-code text-on-surface-variant"></span>
+                <button onclick="closeModal()" class="font-label-caps text-label-caps text-on-surface-variant hover:text-secondary transition-colors">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentMethod = "bm25";
+        let currentExpansion = "none";
+        let currentResults = [];
+        let acTimeout = null;
+        let selectedFile = null;
+
+        window.addEventListener("DOMContentLoaded", () => {
+            refreshStatus();
+            checkSBERTAvailability();
+            showView("search");
+            updateMethodChips();
+            updateExpansionChips();
+        });
+
+        function showView(name) {
+            document.querySelectorAll(".view").forEach(v => v.classList.remove("active"));
+            const view = document.getElementById("view-" + name);
+            if (view) view.classList.add("active");
+
+            document.querySelectorAll(".nav-btn").forEach(btn => {
+                btn.classList.remove("bg-secondary-container", "text-on-secondary-container", "font-bold");
+                btn.classList.add("text-on-surface-variant");
+            });
+            const activeBtn = document.getElementById("nav-" + name);
+            if (activeBtn) {
+                activeBtn.classList.add("bg-secondary-container", "text-on-secondary-container", "font-bold");
+                activeBtn.classList.remove("text-on-surface-variant");
+            }
+
+            const titles = { search: "Search", corpus: "Corpus & Index", evaluation: "Evaluation" };
+            document.getElementById("topbar-title").textContent = titles[name] || name;
+
+            if (name === "corpus") refreshStatus();
+        }
+
+        function setMethod(m) {
+            currentMethod = m;
+            updateMethodChips();
+            updateSidebarMethods();
+        }
+
+        function setExpansion(e) {
+            currentExpansion = e;
+            updateExpansionChips();
+            updateSidebarExpansions();
+        }
+
+        function updateMethodChips() {
+            document.querySelectorAll(".method-chip").forEach(btn => {
+                const active = btn.onclick.toString().includes(`'${currentMethod}'`);
+                btn.classList.toggle("active-chip", active);
+                btn.classList.toggle("bg-secondary-container", active);
+                btn.classList.toggle("text-on-secondary-container", active);
+                btn.classList.toggle("border-secondary", active);
+                btn.classList.toggle("bg-surface-container-lowest", !active);
+                btn.classList.toggle("text-on-surface-variant", !active);
+            });
+        }
+
+        function updateExpansionChips() {
+            document.querySelectorAll(".exp-chip").forEach(btn => {
+                const active = btn.onclick.toString().includes(`'${currentExpansion}'`);
+                btn.classList.toggle("active-exp", active);
+                btn.classList.toggle("bg-secondary-container", active);
+                btn.classList.toggle("text-on-secondary-container", active);
+                btn.classList.toggle("border-secondary", active);
+                btn.classList.toggle("bg-surface-container-lowest", !active);
+                btn.classList.toggle("text-on-surface-variant", !active);
+            });
+        }
+
+        function updateSidebarMethods() {
+            document.querySelectorAll(".smethod").forEach(btn => {
+                const active = btn.onclick.toString().includes(`'${currentMethod}'`);
+                btn.classList.toggle("bg-secondary-container", active);
+                btn.classList.toggle("text-on-secondary-container", active);
+                btn.classList.toggle("font-bold", active);
+                btn.classList.toggle("text-on-surface-variant", !active);
+            });
+        }
+
+        function updateSidebarExpansions() {
+            document.querySelectorAll(".sexp").forEach(btn => {
+                const active = btn.onclick.toString().includes(`'${currentExpansion}'`);
+                btn.classList.toggle("bg-secondary-container", active);
+                btn.classList.toggle("text-on-secondary-container", active);
+                btn.classList.toggle("font-bold", active);
+                btn.classList.toggle("text-on-surface-variant", !active);
+            });
+        }
+
+        function getActiveQueryInput() {
+            const landing = document.getElementById("landing-input");
+            const results = document.getElementById("results-input");
+            if (document.getElementById("search-results").classList.contains("hidden")) {
+                return landing;
+            }
+            return results;
+        }
+
+        function onSearchInput(value, inputId) {
+            document.getElementById("landing-input").value = value;
+            document.getElementById("results-input").value = value;
+
+            clearTimeout(acTimeout);
+            if (value.trim().length < 2) {
+                hideAutocomplete();
+                return;
+            }
+            acTimeout = setTimeout(() => fetchAutocomplete(value), 220);
+        }
+
+        async function fetchAutocomplete(query) {
+            try {
+                const res = await fetch(`/api/autocomplete?q=${encodeURIComponent(query)}`);
+                const data = await res.json();
+
+                if (!data.length) { hideAutocomplete(); return; }
+
+                const makeList = (ulId, acId) => {
+                    const ul = document.getElementById(ulId);
+                    if (!ul) return;
+                    ul.innerHTML = "";
+                    data.forEach(term => {
+                        const li = document.createElement("li");
+                        li.className = "px-4 py-2.5 font-body-sm text-body-sm text-on-surface cursor-pointer hover:bg-surface-container-low flex items-center gap-3";
+                        li.innerHTML = `<span class="material-symbols-outlined text-outline text-base">search</span>${escapeHtml(term)}`;
+                        li.onclick = () => { selectSuggestion(term); };
+                        ul.appendChild(li);
+                    });
+                    document.getElementById(acId).classList.remove("hidden");
+                };
+
+                if (document.getElementById("search-results").classList.contains("hidden")) {
+                    makeList("autocomplete-list", "ac-landing");
+                } else {
+                    makeList("autocomplete-list-results", "ac-results");
+                }
+            } catch (e) { }
+        }
+
+        function hideAutocomplete() {
+            document.getElementById("ac-landing").classList.add("hidden");
+            document.getElementById("ac-results").classList.add("hidden");
+        }
+
+        function selectSuggestion(term) {
+            const input = getActiveQueryInput();
+            const words = input.value.trim().split(/\s+/);
+            words[words.length - 1] = term;
+            const newQuery = words.join(" ") + " ";
+            input.value = newQuery;
+            document.getElementById("landing-input").value = newQuery;
+            document.getElementById("results-input").value = newQuery;
+            hideAutocomplete();
+            input.focus();
+        }
+
+        document.addEventListener("click", e => {
+            if (!e.target.closest("#ac-landing") && !e.target.closest("#landing-input")) {
+                document.getElementById("ac-landing").classList.add("hidden");
+            }
+            if (!e.target.closest("#ac-results") && !e.target.closest("#results-input")) {
+                document.getElementById("ac-results").classList.add("hidden");
+            }
+        });
+
+        async function runSearch() {
+            const input = getActiveQueryInput();
+            const query = input.value.trim();
+            if (!query) return;
+
+            hideAutocomplete();
+
+            document.getElementById("search-landing").classList.add("hidden");
+            document.getElementById("search-results").classList.remove("hidden");
+            document.getElementById("search-results").classList.add("flex");
+
+            document.getElementById("result-cards").innerHTML = `
+<div class="flex flex-col gap-3">
+${[1, 2, 3].map(() => `
+<div class="animate-pulse bg-surface-container-lowest border border-outline-variant rounded-xl p-5">
+<div class="h-4 bg-surface-container-high rounded w-3/4 mb-3"></div>
+<div class="h-3 bg-surface-container rounded w-full mb-2"></div>
+<div class="h-3 bg-surface-container rounded w-5/6"></div>
+</div>`).join("")}
+</div>`;
+            document.getElementById("no-results").classList.add("hidden");
+            document.getElementById("results-meta").textContent = "Searching...";
+
+            try {
+                const res = await fetch("/api/search", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        query: query,
+                        method: currentMethod,
+                        expansion: currentExpansion,
+                        top_k: 10,
+                    }),
+                });
+
+                const data = await res.json();
+
+                if (data.error) {
+                    showSearchError(data.error);
+                    return;
+                }
+
+                currentResults = data.results || [];
+                renderResults(data);
+                updateSidebarMethods();
+                updateSidebarExpansions();
+                fetchRelatedTerms(query);
+            } catch (e) {
+                showSearchError("Could not reach the server. Make sure app.py is running.");
+            }
+        }
+
+        function renderResults(data) {
+            const cards = document.getElementById("result-cards");
+            const noRes = document.getElementById("no-results");
+            const meta = document.getElementById("results-meta");
+
+            meta.textContent = `${data.total} result${data.total !== 1 ? "s" : ""} for "${data.query}" · ${data.time_ms} ms · ${data.method.toUpperCase()}`;
+
+            const expRow = document.getElementById("expansion-row");
+            const expChips = document.getElementById("expansion-chips-row");
+            if (data.expansion_terms && data.expansion_terms.length && data.expansion !== "none") {
+                expChips.innerHTML = data.expansion_terms.map(t =>
+                    `<button onclick="addToQuery('${escapeHtml(t)}')" class="px-2 py-1 bg-surface-container-low border border-outline-variant rounded font-body-sm text-body-sm text-secondary cursor-pointer hover:bg-surface-variant">${escapeHtml(t)}</button>`
+                ).join("");
+                expRow.classList.remove("hidden");
+                expRow.classList.add("flex");
+            } else {
+                expRow.classList.add("hidden");
+                expRow.classList.remove("flex");
+            }
+
+            if (!data.results || data.results.length === 0) {
+                cards.innerHTML = "";
+                noRes.classList.remove("hidden");
+                noRes.classList.add("flex");
+                return;
+            }
+
+            noRes.classList.add("hidden");
+            noRes.classList.remove("flex");
+
+            const query = document.getElementById("landing-input").value.trim();
+
+            cards.innerHTML = data.results.map(r => {
+                const snippet = highlightTerms(escapeHtml(r.snippet), query);
+                const catHtml = r.category
+                    ? `<span class="px-2 py-0.5 bg-surface-container border border-outline-variant rounded-full font-label-caps text-label-caps text-on-surface-variant">${escapeHtml(r.category)}</span>`
+                    : "";
+
+                return `
+<div class="bg-surface-container-lowest border border-outline-variant rounded-xl p-5 flex flex-col gap-2 hover:shadow-[0_4px_20px_rgba(26,54,93,0.08)] transition-shadow cursor-pointer"
+onclick="openModal(${r.doc_id})">
+<div class="flex items-start justify-between gap-3">
+<h3 class="font-headline-md text-[17px] leading-tight text-primary hover:underline">${escapeHtml(r.title)}</h3>
+<span class="font-technical-code text-technical-code text-on-surface-variant shrink-0 text-[11px] mt-0.5">#${r.rank} · ${r.score}</span>
+</div>
+<div class="flex items-center gap-2">${catHtml}<span class="font-technical-code text-technical-code text-outline text-[11px]">doc_id: ${r.doc_id}</span></div>
+<p class="font-body-sm text-body-sm text-on-surface-variant leading-relaxed">${snippet}</p>
+</div>`;
+            }).join("");
+        }
+
+        function showSearchError(msg) {
+            document.getElementById("result-cards").innerHTML = `
+<div class="flex flex-col items-center justify-center py-12 text-center">
+<span class="material-symbols-outlined text-5xl text-error mb-3">error_outline</span>
+<p class="font-body-base text-body-base text-on-surface-variant">${escapeHtml(msg)}</p>
+</div>`;
+            document.getElementById("results-meta").textContent = "Error";
+        }
+
+        function addToQuery(term) {
+            const input = getActiveQueryInput();
+            input.value = input.value.trim() + " " + term;
+            document.getElementById("landing-input").value = input.value;
+            document.getElementById("results-input").value = input.value;
+            runSearch();
+        }
+
+        function changeSortOrder(order) {
+            if (!currentResults.length) return;
+            if (order === "alpha") {
+                currentResults.sort((a, b) => a.title.localeCompare(b.title));
+            } else {
+                currentResults.sort((a, b) => b.score - a.score);
+            }
+            renderResults({ results: currentResults, query: getActiveQueryInput().value.trim(), total: currentResults.length, time_ms: "—", method: currentMethod, expansion: currentExpansion, expansion_terms: [] });
+        }
+
+        function goBackToLanding() {
+            document.getElementById("search-landing").classList.remove("hidden");
+            document.getElementById("search-results").classList.add("hidden");
+            document.getElementById("search-results").classList.remove("flex");
+        }
+
+        async function fetchRelatedTerms(query) {
+            try {
+                const res = await fetch(`/api/autocomplete?q=${encodeURIComponent(query + " ")}`);
+                const data = await res.json();
+                const box = document.getElementById("related-terms");
+                box.innerHTML = data.slice(0, 12).map(t =>
+                    `<button onclick="addToQuery('${escapeHtml(t)}')"
+class="px-2 py-1 bg-surface-container-lowest border border-outline-variant rounded font-body-sm text-body-sm text-secondary cursor-pointer hover:bg-surface-variant transition-colors">${escapeHtml(t)}</button>`
+                ).join("") || `<span class="font-body-sm text-body-sm text-outline">None found</span>`;
+            } catch (e) { }
+        }
+
+        function openModal(docId) {
+            const result = currentResults.find(r => r.doc_id === docId);
+            if (!result) return;
+            document.getElementById("modal-title").textContent = result.title;
+            document.getElementById("modal-category").textContent = result.category || "—";
+            document.getElementById("modal-docid").textContent = `doc_id: ${result.doc_id}`;
+            document.getElementById("modal-body").textContent = result.snippet;
+            document.getElementById("modal-score").textContent = `Score: ${result.score} · ${currentMethod.toUpperCase()}`;
+            document.getElementById("doc-modal").classList.remove("hidden");
+        }
+
+        function closeModal() {
+            document.getElementById("doc-modal").classList.add("hidden");
+        }
+
+        document.getElementById("doc-modal").addEventListener("click", e => {
+            if (e.target === document.getElementById("doc-modal")) closeModal();
+        });
+
+        function onDragOver(e) {
+            e.preventDefault();
+            document.getElementById("drop-zone").classList.add("border-secondary", "bg-surface-container");
+        }
+
+        function onDragLeave(e) {
+            document.getElementById("drop-zone").classList.remove("border-secondary", "bg-surface-container");
+        }
+
+        function onDrop(e) {
+            e.preventDefault();
+            onDragLeave(e);
+            const file = e.dataTransfer.files[0];
+            if (file) showChosenFile(file);
+        }
+
+        function handleFileSelect(input) {
+            if (input.files[0]) showChosenFile(input.files[0]);
+        }
+
+        function showChosenFile(file) {
+            selectedFile = file;
+            document.getElementById("file-chosen-name").textContent = file.name + ` (${(file.size / 1024).toFixed(1)} KB)`;
+            document.getElementById("file-chosen").classList.remove("hidden");
+            document.getElementById("file-chosen").classList.add("flex");
+        }
+
+        function clearFile() {
+            selectedFile = null;
+            document.getElementById("file-input").value = "";
+            document.getElementById("file-chosen").classList.add("hidden");
+            document.getElementById("file-chosen").classList.remove("flex");
+        }
+
+        async function uploadCorpus() {
+            const formData = new FormData();
+            if (selectedFile) {
+                formData.append("file", selectedFile);
+            } else {
+                showUploadFeedback("error", "Please select a file first, or click 'Use Demo Corpus'.");
+                return;
+            }
+            await doUpload(formData);
+        }
+
+        async function loadDemo() {
+            const formData = new FormData();
+            formData.append("use_demo", "1");
+            await doUpload(formData);
+        }
+
+        async function doUpload(formData) {
+            showUploadFeedback("loading", "Building index...");
+            try {
+                const res = await fetch("/api/upload", { method: "POST", body: formData });
+                const data = await res.json();
+                if (data.error) {
+                    showUploadFeedback("error", data.error);
+                } else {
+                    showUploadFeedback("success", data.message + ` — ${data.doc_count} docs, vocab: ${data.vocab_size} terms`);
+                    refreshStatus();
+                    clearFile();
+                }
+            } catch (e) {
+                showUploadFeedback("error", "Could not reach the server. Is app.py running?");
+            }
+        }
+
+        function showUploadFeedback(type, msg) {
+            const box = document.getElementById("upload-feedback");
+            const icon = document.getElementById("upload-icon");
+            const text = document.getElementById("upload-msg");
+
+            const styles = {
+                success: { border: "border-green-200", bg: "bg-green-50", icon: "check_circle", color: "text-green-700" },
+                error: { border: "border-red-200", bg: "bg-red-50", icon: "error", color: "text-red-700" },
+                loading: { border: "border-outline-variant", bg: "bg-surface-container-low", icon: "hourglass_top", color: "text-on-surface-variant" },
+            };
+
+            const s = styles[type] || styles.loading;
+            box.className = `mt-4 flex items-center gap-2 px-4 py-3 rounded-lg border ${s.border} ${s.bg}`;
+            icon.className = `material-symbols-outlined text-lg ${s.color}`;
+            icon.textContent = s.icon;
+            text.className = `font-body-sm text-body-sm ${s.color}`;
+            text.textContent = msg;
+
+            box.classList.remove("hidden");
+            box.classList.add("flex");
+        }
+
+        async function runEvaluation() {
+            const raw = document.getElementById("eval-queries-input").value;
+            const k = parseInt(document.getElementById("eval-k").value, 10);
+
+            let testQueries;
+            try {
+                testQueries = JSON.parse(raw);
+            } catch (e) {
+                alert("Invalid JSON. Please check the test queries format.");
+                return;
+            }
+
+            try {
+                const res = await fetch("/api/evaluate", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ test_queries: testQueries, k }),
+                });
+                const data = await res.json();
+                if (data.error) { alert(data.error); return; }
+                renderEvalResults(data);
+            } catch (e) {
+                alert("Could not reach the server. Is app.py running?");
+            }
+        }
+
+        function renderEvalResults(data) {
+            const box = document.getElementById("eval-results");
+            const meta = document.getElementById("eval-meta");
+            const body = document.getElementById("eval-table-body");
+
+            document.getElementById("eval-ndcg-header").textContent = `NDCG@${data.k}`;
+            document.getElementById("eval-p-header").textContent = `P@${data.k}`;
+            meta.textContent = `${data.queries} test queries · k = ${data.k}`;
+
+            const methods = Object.entries(data.methods);
+            const bestMap = Math.max(...methods.map(([, v]) => v.MAP));
+
+            body.innerHTML = methods.map(([method, scores]) => {
+                const isBest = scores.MAP === bestMap;
+                return `
+<tr class="${isBest ? "bg-surface-container-low" : ""}">
+<td class="px-6 py-3">
+<span class="flex items-center gap-2 font-body-sm text-body-sm text-on-surface font-semibold">
+${isBest ? '<span class="material-symbols-outlined text-secondary text-base fill-icon">emoji_events</span>' : ""}
+${method.toUpperCase()}
+</span>
+</td>
+<td class="px-6 py-3 text-right font-technical-code text-technical-code ${isBest ? "text-secondary font-semibold" : "text-on-surface"}">${scores.MAP}</td>
+<td class="px-6 py-3 text-right font-technical-code text-technical-code text-on-surface">${scores[`NDCG@${data.k}`]}</td>
+<td class="px-6 py-3 text-right font-technical-code text-technical-code text-on-surface">${scores[`P@${data.k}`]}</td>
+</tr>`;
+            }).join("");
+
+            box.classList.remove("hidden");
+            box.classList.add("flex");
+            box.style.display = "block";
+        }
+
+        async function refreshStatus() {
+            try {
+                const res = await fetch("/api/status");
+                const data = await res.json();
+
+                const loaded = data.corpus_loaded;
+                const dot = document.getElementById("status-dot");
+                const text = document.getElementById("status-text");
+
+                dot.classList.toggle("bg-green-500", loaded);
+                dot.classList.toggle("bg-outline", !loaded);
+                text.textContent = loaded
+                    ? `${data.doc_count} docs · ${data.vocab_size} terms`
+                    : "No corpus loaded";
+
+                document.getElementById("stat-docs").textContent = loaded ? data.doc_count : "—";
+                document.getElementById("stat-vocab").textContent = loaded ? data.vocab_size : "—";
+                document.getElementById("stat-avglen").textContent = loaded ? data.avg_doc_length : "—";
+                document.getElementById("stat-status").textContent = loaded ? "Ready" : "Empty";
+            } catch (e) {
+                document.getElementById("status-text").textContent = "Server offline";
+            }
+        }
+
+        async function checkSBERTAvailability() {
+            try {
+                const res = await fetch("/api/status");
+                const data = await res.json();
+
+                if (data.bert_available) {
+                    const elements = [
+                        "sbert-method-chip",
+                        "sbert-method-sidebar",
+                        "sbert-exp-chip",
+                        "sbert-exp-sidebar"
+                    ];
+                    elements.forEach(id => {
+                        const el = document.getElementById(id);
+                        if (el) el.style.display = id.includes("method") ? "inline-block" : "flex";
+                    });
+                }
+            } catch (e) {
+                console.error("Could not check SBERT availability:", e);
+            }
+        }
+
+        function escapeHtml(str) {
+            if (typeof str !== "string") return String(str || "");
+            return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+        }
+
+        function highlightTerms(snippet, query) {
+            if (!query) return snippet;
+            const words = query.split(/\s+/).filter(w => w.length > 2);
+            words.forEach(word => {
+                const re = new RegExp(`(${word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, "gi");
+                snippet = snippet.replace(re, '<span class="highlight">$1</span>');
+            });
+            return snippet;
+        }
+    </script>
+</body>
+</html>
