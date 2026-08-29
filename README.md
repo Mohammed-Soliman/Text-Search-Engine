@@ -1,6 +1,6 @@
 # Basic Search Engine with Chatbot
 
-This project implements a full-featured text search engine from scratch, combining classical **Information Retrieval techniques** with modern **semantic search methods**, including Boolean, TF-IDF, BM25 ranking, and BERT-based query expansion, now integrated with an intelligent **chatbot assistant** for conversational retrieval and answer guidance.
+This project implements a full-featured text search engine from scratch, combining classical **Information Retrieval techniques** with modern **semantic search methods**, including Boolean, TF-IDF, BM25 ranking, and BERT-based query expansion.
 
 Course: DSAI 201 - Data Mining and Information Retrieval  
 Institution: Zewail City of Science and Technology  
@@ -10,7 +10,7 @@ Semester: Spring 2026
 
 ## 🚀 Project Overview
 
-The system is designed to index and retrieve relevant documents efficiently from a large corpus, supporting both lexical and semantic search, with a chatbot layer that helps users ask natural-language questions and receive context-aware responses.
+The system is designed to index and retrieve relevant documents efficiently from a large corpus, supporting both lexical and semantic search.
 
 The engine is implemented across multiple components:
 
@@ -49,18 +49,9 @@ The engine is implemented across multiple components:
 
 ---
 
-## 4️⃣ Chatbot Layer - Conversational Search Assistant
-
-- Natural-language query understanding and translation  
-- Chat-driven search flow connected to retrieval modules  
-- Context-aware response generation from retrieved content  
-- Modular chatbot pipeline (document processor, translator, search handler)  
-
----
-
 ## 5️⃣ User Interface and Evaluation
 
-- Interactive Streamlit UI for search and chatbot interaction  
+- Interactive Streamlit UI for search  
 - Real-time ranked results and conversational responses  
 - Evaluation metrics (MAP, nDCG, Precision@K)  
 - Visualization of model and system performance  
