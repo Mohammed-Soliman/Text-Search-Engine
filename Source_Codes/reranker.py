@@ -8,12 +8,6 @@ class BERTReranker:
         self.model = SentenceTransformer(model_name)
         print("BERT model ready")
 
-        # Doc embeddings are the expensive part of reranking. Without a cache,
-        # every single search re-embeds every candidate document from scratch
-        # on the CPU, which is what makes SBERT feel "very slow" in practice.
-        # We cache per doc_id and only ever embed a document once. The cache
-        # is keyed to the specific index object in memory, so it's
-        # automatically invalidated whenever a new corpus is uploaded.
         self._doc_embeddings = {}
         self._cached_index_id = None
 
