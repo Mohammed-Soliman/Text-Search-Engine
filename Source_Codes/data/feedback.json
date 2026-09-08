@@ -1,0 +1,12 @@
+[
+  {
+    "query": "helluw",
+    "normalized_query": "helluw",
+    "method": "vsm",
+    "relevant": [
+      1066
+    ],
+    "non_relevant": [],
+    "timestamp": 1788901130.2004874
+  }
+]

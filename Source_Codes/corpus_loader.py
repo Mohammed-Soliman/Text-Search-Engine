@@ -126,7 +126,12 @@ class CorpusLoader:
         return normalized
 
     def load_demo(self):
-        demo_docs = self.load("bbc-text.csv")
+        # Resolve relative to this file's own location (not the current
+        # working directory), so `load_demo()` works no matter where the
+        # app is launched from - a shell in a different folder, a run
+        # configuration in an IDE, systemd, gunicorn, etc.
+        demo_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "bbc-text.csv")
+        demo_docs = self.load(demo_path)
         print(f"[CorpusLoader] Loaded demo corpus: {len(demo_docs)} documents")
         return demo_docs
 
