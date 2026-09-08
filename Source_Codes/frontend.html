@@ -167,7 +167,7 @@
             <div id="search-landing" class="flex flex-col items-center justify-center flex-1 px-gutter pb-24">
                 <h1 class="font-display-lg text-[40px] text-primary mb-3 tracking-tight text-center">Basic Text Search Engine</h1>
                 <p class="font-body-base text-body-base text-on-surface-variant max-w-lg mx-auto text-center mb-10">
-                    Search documents using BM25, TF-IDF, or VSM. Expand queries with WordNet, Rocchio, or SBERT.
+                    Search documents using BM25, TF-IDF, or VSM. Expand queries with WordNet, Rocchio, or SBERT — with automatic spelling correction and mark results relevant to refine your results.
                 </p>
 
                 <div class="w-full max-w-2xl relative">
@@ -252,10 +252,41 @@
                             </div>
                         </div>
 
+                        <div id="spelling-row" class="hidden items-center gap-2 p-3 bg-surface-container-low rounded-xl border border-outline-variant">
+                            <span class="material-symbols-outlined text-secondary text-lg">spellcheck</span>
+                            <span class="font-body-sm text-body-sm text-on-surface">
+                                Did you mean <button id="spelling-suggestion-btn" onclick="acceptSpellingSuggestion()" class="font-semibold text-secondary underline hover:no-underline"></button>?
+                            </span>
+                            <button onclick="dismissSpellingSuggestion()" class="ml-auto font-label-caps text-label-caps text-on-surface-variant hover:text-secondary transition-colors">Dismiss</button>
+                        </div>
+
+                        <div id="auto-corrected-row" class="hidden items-center gap-2 p-3 bg-surface-container-low rounded-xl border border-outline-variant">
+                            <span class="material-symbols-outlined text-secondary text-lg">spellcheck</span>
+                            <span class="font-body-sm text-body-sm text-on-surface">
+                                Showing results for <span id="auto-corrected-text" class="font-semibold text-secondary"></span>.
+                            </span>
+                            <button onclick="searchOriginalInstead()" class="ml-auto font-label-caps text-label-caps text-on-surface-variant hover:text-secondary transition-colors">Search instead for what I typed</button>
+                        </div>
+
                         <div id="expansion-row" class="hidden flex-wrap gap-2 items-center p-3 bg-surface-container-low rounded-xl border border-outline-variant">
                             <span class="material-symbols-outlined text-secondary text-lg">hub</span>
                             <span class="font-label-caps text-label-caps text-secondary mr-1">Expanded with:</span>
                             <div id="expansion-chips-row" class="flex flex-wrap gap-1.5"></div>
+                        </div>
+
+                        <div id="feedback-row" class="hidden items-center gap-3 p-3 bg-surface-container-low rounded-xl border border-outline-variant">
+                            <span class="material-symbols-outlined text-secondary text-lg">rate_review</span>
+                            <span id="feedback-summary" class="font-body-sm text-body-sm text-on-surface flex-1">
+                                Mark results relevant or not relevant, then refine.
+                            </span>
+                            <button onclick="applyRelevanceFeedback()"
+                                    class="bg-primary-container text-on-primary font-label-caps text-label-caps px-3 py-1.5 rounded-lg hover:bg-primary transition-colors flex items-center gap-1.5 shrink-0">
+                                <span class="material-symbols-outlined text-base">auto_fix_high</span> Refine with feedback
+                            </button>
+                            <button onclick="clearRelevanceFeedback()"
+                                    class="font-label-caps text-label-caps text-on-surface-variant hover:text-secondary transition-colors shrink-0">
+                                Clear
+                            </button>
                         </div>
 
                         <div id="result-cards" class="flex flex-col gap-3"></div>
@@ -501,6 +532,16 @@
         let acTimeout = null;
         let selectedFile = null;
 
+        // -- Relevance feedback state ------------------------------------------
+        // Map of doc_id -> "relevant" | "not_relevant"
+        let feedbackState = {};
+        let lastSearchedQuery = "";
+        let feedbackApplied = false; // true once "Refine with feedback" results are shown
+
+        // -- Spelling correction state --------------------------------------------
+        let pendingSpellingSuggestion = null; // corrected query string awaiting user confirmation
+        let lastAutoCorrected = null; // { original, corrected } when server auto-applied a fix
+
         window.addEventListener("DOMContentLoaded", () => {
             refreshStatus();
             checkSBERTAvailability();
@@ -662,12 +703,18 @@
             }
         });
 
-        async function runSearch() {
+        async function runSearch(useCorrected) {
             const input = getActiveQueryInput();
             const query = input.value.trim();
             if (!query) return;
 
             hideAutocomplete();
+
+            // a fresh search starts a fresh feedback round
+            feedbackState = {};
+            feedbackApplied = false;
+            lastSearchedQuery = query;
+            hideSpellingBanners();
 
             document.getElementById("search-landing").classList.add("hidden");
             document.getElementById("search-results").classList.remove("hidden");
@@ -686,15 +733,20 @@ ${[1, 2, 3].map(() => `
             document.getElementById("results-meta").textContent = "Searching...";
 
             try {
+                const body = {
+                    query: query,
+                    method: currentMethod,
+                    expansion: currentExpansion,
+                    top_k: 10,
+                };
+                if (useCorrected === true || useCorrected === false) {
+                    body.use_corrected = useCorrected;
+                }
+
                 const res = await fetch("/api/search", {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({
-                        query: query,
-                        method: currentMethod,
-                        expansion: currentExpansion,
-                        top_k: 10,
-                    }),
+                    body: JSON.stringify(body),
                 });
 
                 const data = await res.json();
@@ -705,12 +757,171 @@ ${[1, 2, 3].map(() => `
                 }
 
                 currentResults = data.results || [];
+
+                // pre-fill feedback marks from any past judgments on this exact query
+                if (data.past_feedback) {
+                    (data.past_feedback.relevant || []).forEach(id => { feedbackState[String(id)] = "relevant"; });
+                    (data.past_feedback.non_relevant || []).forEach(id => { feedbackState[String(id)] = "not_relevant"; });
+                }
+
                 renderResults(data);
+                renderSpellingBanners(data, query);
+                updateFeedbackRow();
                 updateSidebarMethods();
                 updateSidebarExpansions();
                 fetchRelatedTerms(query);
             } catch (e) {
                 showSearchError("Could not reach the server. Make sure app.py is running.");
+            }
+        }
+
+        // -- Spelling / "did you mean" UI --------------------------------------------
+
+        function hideSpellingBanners() {
+            document.getElementById("spelling-row").classList.add("hidden");
+            document.getElementById("spelling-row").classList.remove("flex");
+            document.getElementById("auto-corrected-row").classList.add("hidden");
+            document.getElementById("auto-corrected-row").classList.remove("flex");
+            pendingSpellingSuggestion = null;
+            lastAutoCorrected = null;
+        }
+
+        function renderSpellingBanners(data, originalQuery) {
+            hideSpellingBanners();
+            if (!data.spelling_corrections || data.spelling_corrections.length === 0) return;
+
+            if (data.auto_corrected) {
+                lastAutoCorrected = { original: originalQuery, corrected: data.corrected_query };
+                document.getElementById("auto-corrected-text").textContent = `"${data.corrected_query}"`;
+                document.getElementById("auto-corrected-row").classList.remove("hidden");
+                document.getElementById("auto-corrected-row").classList.add("flex");
+            } else {
+                pendingSpellingSuggestion = data.corrected_query;
+                document.getElementById("spelling-suggestion-btn").textContent = `"${data.corrected_query}"`;
+                document.getElementById("spelling-row").classList.remove("hidden");
+                document.getElementById("spelling-row").classList.add("flex");
+            }
+        }
+
+        function acceptSpellingSuggestion() {
+            if (!pendingSpellingSuggestion) return;
+            const input = getActiveQueryInput();
+            input.value = pendingSpellingSuggestion;
+            document.getElementById("landing-input").value = pendingSpellingSuggestion;
+            document.getElementById("results-input").value = pendingSpellingSuggestion;
+            runSearch(true);
+        }
+
+        function dismissSpellingSuggestion() {
+            hideSpellingBanners();
+        }
+
+        function searchOriginalInstead() {
+            if (!lastAutoCorrected) return;
+            const input = getActiveQueryInput();
+            input.value = lastAutoCorrected.original;
+            document.getElementById("landing-input").value = lastAutoCorrected.original;
+            document.getElementById("results-input").value = lastAutoCorrected.original;
+            runSearch(false);
+        }
+
+        // -- Relevance feedback UI --------------------------------------------------
+
+        function markFeedback(docId, verdict) {
+            // clicking the already-active verdict toggles it off
+            if (feedbackState[docId] === verdict) {
+                delete feedbackState[docId];
+            } else {
+                feedbackState[docId] = verdict;
+            }
+            updateFeedbackCardStyles();
+            updateFeedbackRow();
+        }
+
+        function updateFeedbackCardStyles() {
+            document.querySelectorAll("[data-feedback-doc]").forEach(card => {
+                const docId = card.getAttribute("data-feedback-doc");
+                const verdict = feedbackState[docId];
+
+                const up = card.querySelector(".fb-up");
+                const down = card.querySelector(".fb-down");
+                if (!up || !down) return;
+
+                up.classList.toggle("text-green-600", verdict === "relevant");
+                up.classList.toggle("bg-green-50", verdict === "relevant");
+                up.classList.toggle("text-on-surface-variant", verdict !== "relevant");
+
+                down.classList.toggle("text-error", verdict === "not_relevant");
+                down.classList.toggle("bg-red-50", verdict === "not_relevant");
+                down.classList.toggle("text-on-surface-variant", verdict !== "not_relevant");
+            });
+        }
+
+        function updateFeedbackRow() {
+            const row = document.getElementById("feedback-row");
+            const summary = document.getElementById("feedback-summary");
+            const marked = Object.keys(feedbackState).length;
+
+            if (marked === 0) {
+                row.classList.add("hidden");
+                row.classList.remove("flex");
+                return;
+            }
+
+            const relevantCount = Object.values(feedbackState).filter(v => v === "relevant").length;
+            const notRelevantCount = Object.values(feedbackState).filter(v => v === "not_relevant").length;
+            summary.textContent = `Marked ${relevantCount} relevant, ${notRelevantCount} not relevant.`;
+
+            row.classList.remove("hidden");
+            row.classList.add("flex");
+        }
+
+        function clearRelevanceFeedback() {
+            feedbackState = {};
+            feedbackApplied = false;
+            updateFeedbackCardStyles();
+            updateFeedbackRow();
+        }
+
+        async function applyRelevanceFeedback() {
+            const relevant = Object.keys(feedbackState).filter(id => feedbackState[id] === "relevant").map(Number);
+            const nonRelevant = Object.keys(feedbackState).filter(id => feedbackState[id] === "not_relevant").map(Number);
+
+            if (relevant.length === 0 && nonRelevant.length === 0) return;
+
+            const summary = document.getElementById("feedback-summary");
+            summary.textContent = "Refining results using your feedback...";
+
+            try {
+                const res = await fetch("/api/feedback", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        query: lastSearchedQuery,
+                        method: currentMethod,
+                        relevant: relevant,
+                        non_relevant: nonRelevant,
+                        top_k: 10,
+                    }),
+                });
+                const data = await res.json();
+
+                if (data.error) {
+                    summary.textContent = data.error;
+                    return;
+                }
+
+                feedbackApplied = true;
+                currentResults = data.results || [];
+                renderResults(data);
+                updateFeedbackCardStyles();
+
+                const applied = data.feedback_applied || { relevant: relevant.length, non_relevant: nonRelevant.length };
+                summary.textContent = `Refined using ${applied.relevant} relevant / ${applied.non_relevant} not-relevant judgment(s). Query expanded to: "${data.expanded_query}".`;
+                document.getElementById("feedback-row").classList.remove("hidden");
+                document.getElementById("feedback-row").classList.add("flex");
+            } catch (e) {
+                summary.textContent = "Could not reach the server. Make sure app.py is running.";
             }
         }
 
@@ -753,16 +964,29 @@ ${[1, 2, 3].map(() => `
                     : "";
 
                 return `
-<div class="bg-surface-container-lowest border border-outline-variant rounded-xl p-5 flex flex-col gap-2 hover:shadow-[0_4px_20px_rgba(26,54,93,0.08)] transition-shadow cursor-pointer"
-onclick="openModal(${r.doc_id})">
+<div class="bg-surface-container-lowest border border-outline-variant rounded-xl p-5 flex flex-col gap-2 hover:shadow-[0_4px_20px_rgba(26,54,93,0.08)] transition-shadow"
+data-feedback-doc="${r.doc_id}">
 <div class="flex items-start justify-between gap-3">
-<h3 class="font-headline-md text-[17px] leading-tight text-primary hover:underline">${escapeHtml(r.title)}</h3>
+<h3 onclick="openModal(${r.doc_id})" class="font-headline-md text-[17px] leading-tight text-primary hover:underline cursor-pointer">${escapeHtml(r.title)}</h3>
 <span class="font-technical-code text-technical-code text-on-surface-variant shrink-0 text-[11px] mt-0.5">#${r.rank} · ${r.score}</span>
 </div>
 <div class="flex items-center gap-2">${catHtml}<span class="font-technical-code text-technical-code text-outline text-[11px]">doc_id: ${r.doc_id}</span></div>
-<p class="font-body-sm text-body-sm text-on-surface-variant leading-relaxed">${snippet}</p>
+<p onclick="openModal(${r.doc_id})" class="font-body-sm text-body-sm text-on-surface-variant leading-relaxed cursor-pointer">${snippet}</p>
+<div class="flex items-center gap-2 mt-1 pt-2 border-t border-outline-variant/60">
+<span class="font-label-caps text-label-caps text-on-surface-variant mr-1">Relevant?</span>
+<button type="button" onclick="event.stopPropagation(); markFeedback('${r.doc_id}','relevant')"
+class="fb-up flex items-center gap-1 px-2 py-1 rounded-lg border border-outline-variant text-on-surface-variant hover:bg-surface-variant transition-colors font-body-sm text-body-sm">
+<span class="material-symbols-outlined text-base">thumb_up</span> Yes
+</button>
+<button type="button" onclick="event.stopPropagation(); markFeedback('${r.doc_id}','not_relevant')"
+class="fb-down flex items-center gap-1 px-2 py-1 rounded-lg border border-outline-variant text-on-surface-variant hover:bg-surface-variant transition-colors font-body-sm text-body-sm">
+<span class="material-symbols-outlined text-base">thumb_down</span> No
+</button>
+</div>
 </div>`;
             }).join("");
+
+            updateFeedbackCardStyles();
         }
 
         function showSearchError(msg) {

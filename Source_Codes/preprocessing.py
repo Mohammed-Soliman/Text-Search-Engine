@@ -6,6 +6,34 @@ import nltk
 from nltk.corpus import stopwords
 from nltk.stem import PorterStemmer, WordNetLemmatizer
 
+
+def _ensure_nltk_data():
+    """Auto-download required NLTK corpora on first run.
+
+    This matters for deployment: a fresh host (Render, Railway, a Docker
+    container, etc.) won't have these packages pre-installed the way a dev
+    machine might. Without this, the very first request would crash with a
+    LookupError instead of the app just quietly fetching what it needs.
+    """
+    required = [
+        ("tokenizers/punkt_tab", "punkt_tab"),
+        ("tokenizers/punkt", "punkt"),
+        ("corpora/stopwords", "stopwords"),
+        ("corpora/wordnet", "wordnet"),
+        ("corpora/omw-1.4", "omw-1.4"),
+    ]
+    for find_path, package in required:
+        try:
+            nltk.data.find(find_path)
+        except LookupError:
+            try:
+                nltk.download(package, quiet=True)
+            except Exception as e:
+                print(f"[nltk] Could not download '{package}': {e}")
+
+
+_ensure_nltk_data()
+
 stemmer = PorterStemmer()
 lemmatizer = WordNetLemmatizer()
 stop_words = set(stopwords.words("english"))
