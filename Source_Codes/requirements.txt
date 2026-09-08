@@ -5,6 +5,8 @@ numpy>=1.26,<3
 pandas>=2.0,<3
 tqdm==4.67.1
 
+streamlit
+
 # SBERT re-ranking is optional. It pulls in torch, which is large (100s of
 # MB) and will make builds slow and hosting memory-hungry. Comment the next
 # two lines out if you don't need the SBERT method/expansion - the rest of
