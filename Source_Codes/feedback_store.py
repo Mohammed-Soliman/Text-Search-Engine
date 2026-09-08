@@ -1,20 +1,3 @@
-"""
-feedback_store.py
-
-Persists explicit user relevance feedback ("this doc is relevant" / "this doc
-is not relevant") so that:
-
-1. It can immediately be used to re-rank the *current* search via Rocchio
-   query expansion (see QueryExpander.rocchio in query_expansion.py), and
-2. It accumulates over time as a lightweight feedback log that could later
-   be used for evaluation, analytics, or to auto-suggest previously-marked
-   documents the next time the same query is issued.
-
-Feedback is stored as a flat, append-only JSON list on disk so it survives
-server restarts. This is intentionally simple (no database) to match the
-rest of the project's "basic" scope.
-"""
-
 import json
 import os
 import time
@@ -26,8 +9,6 @@ class FeedbackStore:
         self.path = path
         self.events = []
         self._load()
-
-    # -- persistence ----------------------------------------------------------
 
     def _load(self):
         if os.path.exists(self.path):
@@ -49,8 +30,6 @@ class FeedbackStore:
         except Exception as e:
             print(f"[FeedbackStore] Could not save {self.path}: {e}")
 
-    # -- writing ----------------------------------------------------------------
-
     def record(self, query, method, relevant_ids, non_relevant_ids):
         event = {
             "query": query,
@@ -64,8 +43,6 @@ class FeedbackStore:
         self._save()
         return event
 
-    # -- reading ------------------------------------------------------------------
-
     def history_for_query(self, query, method=None, limit=50):
         normalized = query.strip().lower()
         matches = [
@@ -75,12 +52,6 @@ class FeedbackStore:
         return matches[-limit:]
 
     def aggregate_for_query(self, query, method=None):
-        """Union of all relevant/non-relevant doc ids ever marked for this query.
-
-        Useful for pre-filling feedback the next time someone runs a query
-        that's already been judged before. Relevant wins over non-relevant
-        if a doc was marked both ways at different times.
-        """
         matches = self.history_for_query(query, method=method)
         relevant = set()
         non_relevant = set()
