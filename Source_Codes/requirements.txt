@@ -10,5 +10,5 @@ tqdm==4.67.1
 # two lines out if you don't need the SBERT method/expansion - the rest of
 # the app (BM25 / TF-IDF / VSM / Boolean, spelling correction, relevance
 # feedback) all work fine without it.
-sentence-transformers==3.3.1
-torch>=2.2,<2.6
+sentence-transformers>=3.3.1
+torch>=2.9
